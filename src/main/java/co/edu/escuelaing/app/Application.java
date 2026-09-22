@@ -12,7 +12,9 @@ public class Application {
             if (name == null || name.isBlank()) {
                 name = "world";
             }
-            return "Hello " + name;
+            String greetingPrefix = System.getenv()
+                    .getOrDefault("GREETING_PREFIX", "Hello");
+            return greetingPrefix + " " + name;
         });
 
         get("/pi", (req, resp) -> String.valueOf(Math.PI));

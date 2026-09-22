@@ -39,9 +39,19 @@ public class WebFramework {
     public static void start(int port) throws IOException {
         running = true;
 
-        try (ServerSocket serverSocket = new ServerSocket(port)) {
-            System.out.println("Server listening on port " + port);
+        String environment = System.getenv().getOrDefault("APP_ENV", "development");
+        System.out.println("Server listening on port " + port);
+        System.out.println("Environment: " + environment);
 
+        if (environment.equals("development")) {
+            get("/shutdown", (req, resp) -> {
+                stop();
+                return "Server will stop after this response.";
+            });
+            System.out.println("Shutdown route enabled (development mode).");
+        }
+
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
             while (running) {
                 try (Socket clientSocket = serverSocket.accept()) {
                     handleRequest(clientSocket);
