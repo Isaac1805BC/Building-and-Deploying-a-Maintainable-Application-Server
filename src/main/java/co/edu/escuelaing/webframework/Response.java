@@ -7,7 +7,7 @@ public class Response {
 
     private int statusCode = 200;
     private String statusText = "OK";
-    private String contentType = "text/plain";
+    private String contentType = "text/plain; charset=utf-8";
     private final Map<String, String> headers = new HashMap<>();
 
     public Response() {
