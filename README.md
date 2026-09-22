@@ -160,6 +160,14 @@ GARBAGE                            -> 400 Bad Request
 GET /hello?name=%zz                -> 400 Bad Request
 ```
 
+### Local endpoints (browser, development, `localhost:8080`)
+
+| `/hello?name=Pedro` | `/pi` | `/env` |
+|---|---|---|
+| ![Local /hello](docs/screenshots/02-local-hello.png) | ![Local /pi](docs/screenshots/03-local-pi.png) | ![Local /env](docs/screenshots/06-local-env.png) |
+
+`/env` confirms `APP_ENV=development` and the default `GREETING_PREFIX=Hello` when no override is passed.
+
 ### `/shutdown` in development
 
 ```
@@ -176,6 +184,14 @@ Server stopped gracefully.
 $ curl localhost:9090/pi   -> connection refused (server is down)
 ```
 
+Browser response and the terminal log after calling it:
+
+| Browser: `GET /shutdown` | Terminal: server stops |
+|---|---|
+| ![Shutdown response in browser](docs/screenshots/04-shutdown-dev-browser.png) | ![Shutdown log, server stopped gracefully](docs/screenshots/05-shutdown-dev-terminal.png) |
+
+The terminal log shows `Shutdown route enabled (development mode)` at startup and `Server stopped gracefully.` right after the request — the connection loop exits only once that response has been fully sent.
+
 ### `/shutdown` in production
 
 ```
@@ -187,6 +203,18 @@ $ curl localhost:9091/env
 APP_ENV=production
 GREETING_PREFIX=Hello
 ```
+
+The same check against the live Railway deployment (`APP_ENV=production`):
+
+```
+$ curl -i https://maintainable-app-server-production.up.railway.app/shutdown
+HTTP/1.1 404 Not Found
+Content-Type: text/plain; charset=utf-8
+
+404 Not Found
+```
+
+`/shutdown` behaves exactly like any unregistered route in production, because `Application.java` only calls `get("/shutdown", ...)` when `APP_ENV` equals `development` — it is never registered, so it can never be reached publicly.
 
 ## Cloud deployment
 
@@ -226,4 +254,6 @@ GET /shutdown                  -> 404  "404 Not Found"                  (disable
 
 This confirms: static resources are served, both `/hello` and `/pi` work as REST endpoints, the configured environment variables (`APP_ENV`, `GREETING_PREFIX`) are active without exposing secrets, unknown routes return `404`, and `/shutdown` is **not** reachable in the production deployment (it only returns 404, exactly like any other unknown route, because `Application.java` never registers it when `APP_ENV=production`).
 
-> Add a browser screenshot of `https://maintainable-app-server-production.up.railway.app/` here for extra visual evidence.
+Browser evidence of the deployed page (`https://maintainable-app-server-production.up.railway.app/`), rendering the static HTML/CSS and the logo image served by the app:
+
+![Deployed application home page on Railway](docs/screenshots/01-production-home.png)
