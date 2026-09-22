@@ -2,8 +2,8 @@
 
 A small Java web framework (no external dependencies) that serves static files (HTML, CSS, JS, images) and lets developers register HTTP `GET` services with lambdas, plus a demo application built on top of it. The server is **sequential** (one request at a time), configured through **environment variables**, and packaged as a Docker image for cloud deployment.
 
-- **Cloud platform:** _pending, see [Cloud deployment](#cloud-deployment)_
-- **Public URL:** _pending_
+- **Cloud platform:** [Railway](https://railway.com) (container deployment from the repository's `Dockerfile`)
+- **Public URL:** https://maintainable-app-server-production.up.railway.app
 
 ## Framework API
 
@@ -190,13 +190,40 @@ GREETING_PREFIX=Hello
 
 ## Cloud deployment
 
-The repository includes a multi-stage `Dockerfile` (Maven build, then a JRE-only image), so any container platform works. Generic steps (Railway/Render/Fly/AWS App Runner):
+The repository includes a multi-stage `Dockerfile` (Maven build, then a JRE-only image). It is deployed on **Railway**, which builds the image straight from this GitHub repository — same source code, same `Dockerfile`, no cloud-specific changes.
 
-1. Create a service from this GitHub repository (it will use the `Dockerfile`).
-2. Set the variables `APP_ENV=production` and `GREETING_PREFIX=Hola`. Do **not** set `PORT` manually if the platform injects it.
-3. Generate a public domain and open it.
-4. Verify: `/`, `/images/logo.png`, `/hello?name=Pedro`, `/pi`, `/env` respond, and `/shutdown` returns `404`.
+### Reproducing the deployment
+
+Using the Railway CLI (or the equivalent steps in the Railway dashboard):
+
+```bash
+railway login
+railway init -n maintainable-app-server      # creates the project
+railway up                                   # builds the Dockerfile and deploys it
+railway variables --set "APP_ENV=production" --set "GREETING_PREFIX=Hola"
+railway domain                               # generates the public *.up.railway.app URL
+railway domain update <generated-domain> --port 8080   # route traffic to the app's port
+```
+
+Railway does **not** need a manually-set `PORT`; the app listens on `8080` (its default when `PORT` is unset — see [`WebFramework.resolvePort`](src/main/java/co/edu/escuelaing/webframework/WebFramework.java)) and the domain is pointed at that same port.
 
 ### Cloud evidence
 
-> **Pending:** deployed URL, screenshot of the page, `/images/logo.png`, `/hello`, `/pi`, `/env` (showing `APP_ENV=production`) and `/shutdown` returning 404 must be added here once the service is published.
+Public URL: **https://maintainable-app-server-production.up.railway.app**
+
+Verified endpoints (production, `APP_ENV=production`, `GREETING_PREFIX=Hola`):
+
+```
+GET /                          -> 200  text/html; charset=utf-8          (index.html, static)
+GET /images/logo.png           -> 200  image/png, 256 bytes              (binary static resource)
+GET /hello?name=Pedro          -> 200  "Hola Pedro"                      (REST endpoint #1)
+GET /pi                        -> 200  "3.141592653589793"               (REST endpoint #2)
+GET /env                       -> 200  "APP_ENV=production
+                                         GREETING_PREFIX=Hola"           (env vars, no secrets)
+GET /unknown                   -> 404  "404 Not Found"
+GET /shutdown                  -> 404  "404 Not Found"                  (disabled in production)
+```
+
+This confirms: static resources are served, both `/hello` and `/pi` work as REST endpoints, the configured environment variables (`APP_ENV`, `GREETING_PREFIX`) are active without exposing secrets, unknown routes return `404`, and `/shutdown` is **not** reachable in the production deployment (it only returns 404, exactly like any other unknown route, because `Application.java` never registers it when `APP_ENV=production`).
+
+> Add a browser screenshot of `https://maintainable-app-server-production.up.railway.app/` here for extra visual evidence.
